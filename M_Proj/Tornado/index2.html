@@ -1,146 +1,111 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Bar Chart</title>
-    <script type="text/javascript" src="javascript/d3.v2.min.js"></script>
-    <style type="text/css">
+<meta charset="utf-8">
+<style>
 
-    .chart {
-      background: #00ccff;
-      margin: 10px;
-      padding-top: 10px; 
-    }
-    
-    .chart .right {
-      stroke: white;
-      fill: indianred; 
-    }
+.bar--positive {
+  fill: #9BCCF5;
+}
 
-    .chart .left {
-      stroke: white;
-      fill: steelblue; 
-    }
+.bar--negative {
+  fill: pink;
+}
 
-    .chart rect:hover {
-      fill: #64707d; 
-    }
-    
-    .chart text {
-      fill: white; 
-    }
-    
-    .chart text.name {
-      fill: black; 
-    }
+text {
+  font: 10px sans-serif;
+}
 
-    </style>
-  </head>
-  <body>
-    <h1>Two sided horiztontal bar chart</h1>
-    <script type="text/javascript">
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+</style>
+<body>
+<p id="example"></p>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script>
 
-      var randomNumbers = function() { 
-        var numbers = [];
-        for (var i = 0; i < 20; i++) {
-          numbers.push(parseInt(Math.random() * 19) + 1);
-        }
-        return numbers;
-      };
+function tornadoChart() {
+  var margin = {top: 20, right: 30, bottom: 40, left: 100},
+    width = 450 - margin.left - margin.right,
+    height = 200 - margin.top - margin.bottom;
 
-      var randomNames = function() { 
-        var names = [];
-        for (var i = 0; i < 20; i++) {
-          names.push(String.fromCharCode(65 + Math.random() * 25) + String.fromCharCode(65 + Math.random() * 25) + String.fromCharCode(65 + Math.random() * 25));
-        }
-        return names;
-      };
+  var x = d3.scale.linear()
+      .range([0, width]);
 
-      var names = randomNames();
-      var leftData = randomNumbers();  
-      var rightData = randomNumbers();
+  var y = d3.scale.ordinal()
+      .rangeRoundBands([0, height], 0.1);
 
-      for (var i= 0; i< names.length; i++) {
-        console.log(names[i] + " from: " + leftData[i] + " to: " + rightData[i]);  
-      }
+  var xAxis = d3.svg.axis()
+      .scale(x)
+      .orient("bottom")
+      .ticks(7)
 
-      var labelArea = 160;
+  var yAxis = d3.svg.axis()
+      .scale(y)
+      .orient("left")
+      .tickSize(0)
 
-      var chart,
-          width = 400,
-          bar_height = 20,
-          height = bar_height * (names.length);
+  var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-      var rightOffset = width + labelArea;
+  function chart(selection) {
+    selection.each(function(data) {
 
-      var chart = d3.select("body")
-        .append('svg')
-        .attr('class', 'chart')
-        .attr('width', labelArea + width + width)
-        .attr('height', height);
-      
-      var xFrom = d3.scale.linear()
-         .domain([0, d3.max(leftData)])
-         .range([0, width]);
+      x.domain(d3.extent(data, function(d) { return d.interactions; })).nice();
+      y.domain(data.map(function(d) { return d.age; }));
 
-      var y = d3.scale.ordinal()
-         .domain(names)
-         .rangeBands([10, height]);
+      var minInteractions = Math.min.apply(Math, data.map(function(o){return o.interactions;}))
+      yAxis.tickPadding(Math.abs(x(minInteractions) - x(0)) + 10);
 
-      var yPosByIndex = function(d, index){ return y(index); } 
+      var bar = svg.selectAll(".bar")
+          .data(data)
 
-      chart.selectAll("rect.left")
-        .data(leftData)
-        .enter().append("rect")
-        .attr("x", function(pos) { return width - xFrom(pos); })
-        .attr("y", yPosByIndex)
-        .attr("class", "left")
-        .attr("width", xFrom)
-        .attr("height", y.rangeBand()); 
+      bar.enter().append("rect")
+          .attr("class", function(d) { return "bar bar--" + (d.interactions < 0 ? "negative" : "positive"); })
+          .attr("x", function(d) { return x(Math.min(0, d.interactions)); })
+          .attr("y", function(d) { return y(d.age); })
+          .attr("width", function(d) { return Math.abs(x(d.interactions) - x(0)); })
+          .attr("height", y.rangeBand())
 
-      chart.selectAll("text.leftscore")
-        .data(leftData)
-        .enter().append("text")
-        .attr("x", function(d) { return width - xFrom(d); })
-        .attr("y", function(d, z){ return y(z) + y.rangeBand()/2; } )
-        .attr("dx", "20")
-        .attr("dy", ".36em")
-        .attr("text-anchor", "end")
-        .attr('class', 'leftscore')
-        .text(String);
+      bar.enter().append('text')
+          .attr("text-anchor", "middle")
+          .attr("x", function(d,i) {
+              return x(Math.min(0, d.interactions)) + (Math.abs(x(d.interactions) - x(0)) / 2);
+          })
+          .attr("y", function(d,i) {
+              return y(d.age) + (y.rangeBand() / 2);
+          })
+          .attr("dy", ".35em")
+          .text(function (d) { return d.interactions; })
 
-      chart.selectAll("text.name")
-        .data(names)
-        .enter().append("text")
-        .attr("x", (labelArea / 2) + width)
-        .attr("y", function(d){ return y(d) + y.rangeBand()/2; } )
-        .attr("dy", ".20em")
-        .attr("text-anchor", "middle")
-        .attr('class', 'name')
-        .text(String);
+      svg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + height + ")")
+          .call(xAxis);
 
-      var xTo = d3.scale.linear()
-         .domain([0, d3.max(rightData)])
-         .range([0, width]);
+      svg.append("g")
+          .attr("class", "y axis")
+          .attr("transform", "translate(" + x(0) + ",0)")
+          .call(yAxis);
+    });
+  }
 
-      chart.selectAll("rect.right")
-        .data(rightData)
-        .enter().append("rect")
-        .attr("x", rightOffset)
-        .attr("y", yPosByIndex)
-        .attr("class", "right")
-        .attr("width", xTo)
-        .attr("height", y.rangeBand()); 
+  return chart;
+}
 
-      chart.selectAll("text.score")
-        .data(rightData)
-        .enter().append("text")
-        .attr("x", function(d) { return xTo(d) +  rightOffset; })
-        .attr("y", function(d,z){ return y(z) + y.rangeBand()/2; } )
-        .attr("dx", -5)
-        .attr("dy", ".36em")
-        .attr("text-anchor", "end")
-        .attr('class', 'score')
-        .text(String);
-    </script>
-  </body>
-</html>
+var data = {"BMW":[{"age":"18-24","gender":"male","interactions":21600},{"age":"18-24","gender":"female","interactions":-5500},{"age":"25-34","gender":"male","interactions":19500},{"age":"25-34","gender":"female","interactions":-5000},{"age":"35-44","gender":"male","interactions":10700},{"age":"35-44","gender":"female","interactions":-3500},{"age":"45-54","gender":"male","interactions":5700},{"age":"45-54","gender":"female","interactions":-2400},{"age":"55-64","gender":"male","interactions":2500},{"age":"55-64","gender":"female","interactions":-1100},{"age":"65+","gender":"male","interactions":1600},{"age":"65+","gender":"female","interactions":-600}],"Ford Mustang":[{"age":"18-24","gender":"male","interactions":7600},{"age":"18-24","gender":"female","interactions":-800},{"age":"25-34","gender":"male","interactions":7100},{"age":"25-34","gender":"female","interactions":-900},{"age":"35-44","gender":"male","interactions":5100},{"age":"35-44","gender":"female","interactions":-800},{"age":"45-54","gender":"male","interactions":3500},{"age":"45-54","gender":"female","interactions":-600},{"age":"55-64","gender":"male","interactions":1400},{"age":"55-64","gender":"female","interactions":-300},{"age":"65+","gender":"male","interactions":600},{"age":"65+","gender":"female","interactions":-200}],"Ford Motor Company":[{"age":"25-34","gender":"male","interactions":4300},{"age":"25-34","gender":"female","interactions":-800},{"age":"18-24","gender":"male","interactions":4200},{"age":"18-24","gender":"female","interactions":-700},{"age":"35-44","gender":"male","interactions":3000},{"age":"35-44","gender":"female","interactions":-600},{"age":"45-54","gender":"male","interactions":1800},{"age":"45-54","gender":"female","interactions":-500},{"age":"55-64","gender":"male","interactions":800},{"age":"55-64","gender":"female","interactions":-300},{"age":"65+","gender":"male","interactions":500},{"age":"65+","gender":"female","interactions":-200}]};
+
+for (var i in data) {
+  var chart = tornadoChart()
+  d3.select("#example")
+      .datum(data[i])
+      .call(chart);
+}
+
+</script>
+</body>

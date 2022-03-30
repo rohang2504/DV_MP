@@ -13,15 +13,16 @@
 
 
 // set the dimensions and margins of the graph
-var margin = {top: 20, right: 50, bottom: 40, left: 450},
+var margin = {top: 20, right: 50, bottom: 370, left: 450},
     width = 850 - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom;
+    height = 700 - margin.top - margin.bottom;
 
 // append the svg object to the body of the page
 var svg = d3.select("#my_dataviz")
   .append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
+    .attr("background-color", "Yellow")
   .append("g")
     .attr("transform",
           "translate(" + margin.left + "," + margin.top + ")");
@@ -31,8 +32,8 @@ d3.csv("https://raw.githubusercontent.com/rohang2504/DV_MP/main/M_Proj/Datasets/
 
   // Add X axis
   var x = d3.scaleLinear()
-    .domain([-21000, 21000])
-    .range([ -width, width]);
+    .domain([0, 21000])
+    .range([ 0, width]);
   svg.append("g")
     .attr("transform", "translate(0," + height + ")")
     .call(d3.axisBottom(x))
@@ -41,15 +42,15 @@ d3.csv("https://raw.githubusercontent.com/rohang2504/DV_MP/main/M_Proj/Datasets/
       .style("text-anchor", "end");
 
   // Add 2nd X axis
-  // var x1 = d3.scaleLinear()
-  //   .domain([21000, 0])
-  //   .range([ -width, 0]);
-  // svg.append("g")
-  //   .attr("transform", "translate(0," + height + ")")
-  //   .call(d3.axisBottom(x1))
-  //   .selectAll("text")
-  //     .attr("transform", "translate(-10,0)rotate(-45)")
-  //     .style("text-anchor", "end");
+  var x1 = d3.scaleLinear()
+    .domain([21000, 0])
+    .range([ 0, width]);
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x1))
+    .selectAll("text")
+      .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "end");
 
   // Y axis
   var y = d3.scaleBand()
@@ -58,22 +59,30 @@ d3.csv("https://raw.githubusercontent.com/rohang2504/DV_MP/main/M_Proj/Datasets/
     .padding(0.2);
   svg.append("g")
     .attr("transform", "translate(" + -0 + ", 0)")
-    .call(d3.axisRight(y));
+    .call(d3.axisLeft(y));
 
 
   //Bars
-  svg.selectAll("myRect")
+  svg.selectAll("Rect_right")
     .data(data)
     .enter()
     .append("rect")
     .attr("x", x(0) )
     .attr("y", function(d) { return y(d.Age); })
-    .attr("width", function(d) { return x((d.Medal_Count)*-1); })
+    .attr("width", function(d) { return x((d.Medal_Count)*1); })
     .attr("height", y.bandwidth() )
     .attr("fill", "Orange")
 
   // 2nd set of Bars
-
+  svg.selectAll("Rect_left")
+    .data(data)
+    .enter()
+    .append("rect")
+    .attr("x", x1(0) )
+    .attr("y", function(d) { return y(d.Age); })
+    .attr("width", function(d) { return x1((d.Medal_Count)*1); })
+    .attr("height", y.bandwidth() )
+    .attr("fill", "Blue")
 
     // .attr("x", function(d) { return x(d.Country); })
     // .attr("y", function(d) { return y(d.Value); })
